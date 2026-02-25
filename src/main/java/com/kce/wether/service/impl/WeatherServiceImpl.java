@@ -4,7 +4,6 @@ import com.kce.wether.dto.MonthlyStatusDTO;
 import com.kce.wether.dto.WeatherResponseDTO;
 import com.kce.wether.entity.Weather;
 import com.kce.wether.repository.WeatherRepository;
-import com.kce.wether.service.WeatherService;
 import com.opencsv.CSVReader;
 
 import org.springframework.stereotype.Service;
@@ -18,16 +17,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class WeatherServiceImpl implements WeatherService {
+public class WeatherServiceImpl {
 
     private final WeatherRepository repository;
 
     public WeatherServiceImpl(WeatherRepository repository) {
         this.repository = repository;
     }
-
-    // 1️⃣ Get Weather By Date
-    @Override
     public List<WeatherResponseDTO> getByDate(LocalDate date) {
 
         LocalDateTime start = date.atStartOfDay();
@@ -39,8 +35,6 @@ public class WeatherServiceImpl implements WeatherService {
                 .collect(Collectors.toList());
     }
 
-    // 2️⃣ Get Weather By Month
-    @Override
     public List<WeatherResponseDTO> getByMonth(int month) {
 
         return repository.findByMonth(month)
@@ -49,8 +43,6 @@ public class WeatherServiceImpl implements WeatherService {
                 .collect(Collectors.toList());
     }
 
-    // 3️⃣ Yearly Stats
-    @Override
     public Map<Integer, MonthlyStatusDTO> getYearlyStats(int year) {
 
         List<Weather> yearlyData = repository.findByYear(year);
@@ -73,7 +65,7 @@ public class WeatherServiceImpl implements WeatherService {
         for (Integer month : monthTemps.keySet()) {
 
             List<Double> temps = monthTemps.get(month);
-            Collections.sort(temps);
+            temps.sort(Double::compareTo);
 
             double min = temps.get(0);
             double max = temps.get(temps.size() - 1);
@@ -93,13 +85,10 @@ public class WeatherServiceImpl implements WeatherService {
         return result;
     }
 
-    // 🔥 CSV Upload via API
-    @Override
     public void loadFromFile(MultipartFile file) throws Exception {
 
         CSVReader reader =
-                new CSVReader(
-                        new InputStreamReader(file.getInputStream()));
+                new CSVReader(new InputStreamReader(file.getInputStream()));
 
         reader.readNext(); // skip header
 
@@ -113,7 +102,6 @@ public class WeatherServiceImpl implements WeatherService {
         while ((line = reader.readNext()) != null) {
 
             try {
-
                 LocalDateTime dateTime =
                         LocalDateTime.parse(line[0], formatter);
 
@@ -122,7 +110,6 @@ public class WeatherServiceImpl implements WeatherService {
                 }
 
                 Weather weather = new Weather();
-
                 weather.setDatetimeUtc(dateTime);
                 weather.setConds(line[1]);
                 weather.setTempm(parseDouble(line[11]));
@@ -149,7 +136,6 @@ public class WeatherServiceImpl implements WeatherService {
     }
 
     private WeatherResponseDTO convertToDTO(Weather weather) {
-
         return new WeatherResponseDTO(
                 weather.getConds(),
                 weather.getTempm(),
